@@ -1,13 +1,13 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.22;
 
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ERC1967Utils } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 import { IMintableBurnable } from "@layerzerolabs/oft-evm/contracts/interfaces/IMintableBurnable.sol";
 
-contract MorphoTokenArbitrum is ERC20Upgradeable, AccessControlUpgradeable, UUPSUpgradeable, IMintableBurnable {
+contract MorphoToken is ERC20Upgradeable, AccessControlEnumerableUpgradeable, UUPSUpgradeable, IMintableBurnable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -16,29 +16,24 @@ contract MorphoTokenArbitrum is ERC20Upgradeable, AccessControlUpgradeable, UUPS
         _disableInitializers();
     }
 
+    /**
+     * @notice Initializes the token contract.
+     * @param _name Name of the token
+     * @param _symbol Symbol of the token
+     * @param _owner Initial default admin of the contract
+     */
     function initialize(string memory _name, string memory _symbol, address _owner) external initializer {
         __ERC20_init(_name, _symbol);
-        __AccessControl_init();
+        __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
-
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
-        _grantRole(MINTER_ROLE, _owner);
-        _grantRole(BURNER_ROLE, _owner);
-        _grantRole(UPGRADER_ROLE, _owner);
-
-        _setRoleAdmin(MINTER_ROLE, DEFAULT_ADMIN_ROLE);
-        _setRoleAdmin(BURNER_ROLE, DEFAULT_ADMIN_ROLE);
-        _setRoleAdmin(UPGRADER_ROLE, DEFAULT_ADMIN_ROLE);
     }
 
     /**
      * @notice Mints a specific amount of tokens to a given address.
-     *
-     *
-     * @param _to The address to which tokens will be minted.
-     * @param _amount The amount of tokens to mint.
-     *
-     * @return A boolean indicating the success of the mint operation.
+     * @param _to The address to which tokens will be minted
+     * @param _amount The amount of tokens to mint
+     * @return A boolean indicating the success of the mint operation
      */
     function mint(address _to, uint256 _amount) external onlyRole(MINTER_ROLE) returns (bool) {
         _mint(_to, _amount);
@@ -47,12 +42,9 @@ contract MorphoTokenArbitrum is ERC20Upgradeable, AccessControlUpgradeable, UUPS
 
     /**
      * @notice Burns a specific amount of tokens from a given address.
-     *
-     *
-     * @param _from The address from which tokens will be burned.
-     * @param _amount The amount of tokens to burn.
-     *
-     * @return A boolean indicating the success of the burn operation.
+     * @param _from The address from which tokens will be burned
+     * @param _amount The amount of tokens to burn
+     * @return A boolean indicating the success of the burn operation
      */
     function burn(address _from, uint256 _amount) external onlyRole(BURNER_ROLE) returns (bool) {
         _burn(_from, _amount);

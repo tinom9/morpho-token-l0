@@ -1,52 +1,36 @@
-import { EndpointId } from '@layerzerolabs/lz-definitions'
-import { ExecutorOptionType } from '@layerzerolabs/lz-v2-utilities'
 import { TwoWayConfig, generateConnectionsConfig } from '@layerzerolabs/metadata-tools'
-import { OAppEnforcedOption } from '@layerzerolabs/toolbox-hardhat'
 
-import type { OmniPointHardhat } from '@layerzerolabs/toolbox-hardhat'
+import { CONTRACTS, getConfirmations, getEnforcedOptions, getOwnerAddress } from './consts/mainnet'
 
-const arbitrumContract: OmniPointHardhat = {
-    eid: EndpointId.ARBITRUM_V2_MAINNET,
-    contractName: 'MorphoMintBurnOFTAdapter',
+async function generateConnections() {
+    const pathways: TwoWayConfig[] = []
+    for (let i = 0; i < CONTRACTS.length; i++) {
+        for (let j = i + 1; j < CONTRACTS.length; j++) {
+            const [from, to] = [CONTRACTS[i], CONTRACTS[j]]
+            pathways.push([
+                from, // Chain A contract
+                to, // Chain B contract
+                [
+                    ['LayerZero Labs', 'Canary'],
+                    [['Deutsche Telekom', 'P2P'], 1],
+                ], // [ requiredDVN[], [ optionalDVN[], threshold ] ]
+                [getConfirmations(from.eid), getConfirmations(to.eid)], // [A to B confirmations, B to A confirmations]
+                [getEnforcedOptions(to.eid), getEnforcedOptions(from.eid)], // Chain B enforcedOptions, Chain A enforcedOptions
+            ])
+        }
+    }
+    return await generateConnectionsConfig(pathways)
 }
-
-const ethereumContract: OmniPointHardhat = {
-    eid: EndpointId.ETHEREUM_V2_MAINNET,
-    contractName: 'MorphoOFTAdapter',
-}
-
-// To connect all the above chains to each other, we need the following pathways:
-// Arbitrum <-> Ethereum
-
-// For this example's simplicity, we will use the same enforced options values for sending to all chains
-// For production, you should ensure `gas` is set to the correct value through profiling the gas usage of calling OFT._lzReceive(...) on the destination chain
-// To learn more, read https://docs.layerzero.network/v2/concepts/applications/oapp-standard#execution-options-and-enforced-settings
-const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
-    {
-        msgType: 1,
-        optionType: ExecutorOptionType.LZ_RECEIVE,
-        gas: 80000,
-        value: 0,
-    },
-]
-
-// With the config generator, pathways declared are automatically bidirectional
-// i.e. if you declare A,B there's no need to declare B,A
-const pathways: TwoWayConfig[] = [
-    [
-        arbitrumContract, // Chain A contract
-        ethereumContract, // Chain B contract
-        [['LayerZero Labs', 'Canary'], [['Deutsche Telekom', 'P2P'], 1]], // [ requiredDVN[], [ optionalDVN[], threshold ] ]
-        [20, 15], // [A to B confirmations, B to A confirmations]
-        [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS], // Chain B enforcedOptions, Chain A enforcedOptions
-    ]
-]
 
 export default async function () {
-    // Generate the connections config based on the pathways
-    const connections = await generateConnectionsConfig(pathways)
     return {
-        contracts: [{ contract: arbitrumContract }, { contract: ethereumContract }],
-        connections,
+        contracts: CONTRACTS.map((contract) => ({
+            contract,
+            config: {
+                owner: getOwnerAddress(contract.eid),
+                delegate: getOwnerAddress(contract.eid),
+            },
+        })),
+        connections: await generateConnections(),
     }
 }

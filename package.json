@@ -1,6 +1,6 @@
 {
-  "name": "@layerzerolabs/mint-burn-oft-adapter-example",
-  "version": "0.1.1",
+  "name": "@layerzerolabs/morpho-token-l0",
+  "version": "0.0.0",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -24,6 +24,7 @@
     "@babel/core": "^7.23.9",
     "@layerzerolabs/devtools-evm-hardhat": "^4.0.0",
     "@layerzerolabs/eslint-config-next": "~2.3.39",
+    "@layerzerolabs/hyperliquid-composer": "^2.0.1",
     "@layerzerolabs/io-devtools": "~0.3.0",
     "@layerzerolabs/lz-definitions": "^3.0.75",
     "@layerzerolabs/lz-evm-messagelib-v2": "^3.0.75",
@@ -31,7 +32,7 @@
     "@layerzerolabs/lz-evm-v1-0.7": "^3.0.75",
     "@layerzerolabs/lz-v2-utilities": "^3.0.75",
     "@layerzerolabs/metadata-tools": "^3.0.0",
-    "@layerzerolabs/oapp-evm": "^0.3.2",
+    "@layerzerolabs/oapp-evm": "^0.4.0",
     "@layerzerolabs/oft-evm": "^3.2.0",
     "@layerzerolabs/prettier-config-next": "^2.3.39",
     "@layerzerolabs/solhint-config": "^3.0.12",
@@ -57,6 +58,7 @@
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-deploy": "^0.12.1",
     "hardhat-deploy-ethers": "^0.3.0-beta.13",
+    "inquirer": "^12.10.0",
     "mocha": "^10.2.0",
     "prettier": "^3.2.5",
     "solhint": "^4.1.1",

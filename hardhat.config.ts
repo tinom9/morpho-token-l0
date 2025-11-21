@@ -15,9 +15,10 @@ import { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 
 import { EndpointId } from '@layerzerolabs/lz-definitions'
 
-import './type-extensions'
-
-import './tasks/sendOFT.ts'
+import './tasks/grantErc20Roles'
+import './tasks/renounceErc20Roles'
+import './tasks/setRateLimits'
+import './tasks/transferErc20AdminRole'
 
 // Set your preferred authentication method
 //
@@ -53,58 +54,26 @@ const config: HardhatUserConfig = {
                         enabled: true,
                         runs: 200,
                     },
+                    evmVersion: 'paris',
                 },
             },
         ],
     },
     networks: {
-        'optimism-testnet': {
-            eid: EndpointId.OPTSEP_V2_TESTNET,
-            url: process.env.RPC_URL_OP_SEPOLIA || 'https://optimism-sepolia.gateway.tenderly.co',
-            accounts,
-            oftAdapter: {
-                tokenAddress: '0x0', // Set the token address for the OFT adapter
-            },
-        },
-        'avalanche-testnet': {
-            eid: EndpointId.AVALANCHE_V2_TESTNET,
-            url: process.env.RPC_URL_FUJI || 'https://rpc.ankr.com/avalanche_fuji',
-            accounts,
-            oftAdapter: {
-                tokenAddress: '0x0', // Set the token address for the OFT adapter
-            },
-        },
-        'arbitrum-testnet': {
-            eid: EndpointId.ARBSEP_V2_TESTNET,
-            url: process.env.RPC_URL_ARB_SEPOLIA || 'https://arbitrum-sepolia.gateway.tenderly.co',
-            accounts,
-            oftAdapter: {
-                tokenAddress: '0xCfdA75Bf59986337525abD6a3335cF4890692A57', // Set the token address for the OFT adapter
-            },
-        },
-        'base-testnet': {
-            eid: EndpointId.BASESEP_V2_TESTNET,
-            url: process.env.RPC_URL_BASE_SEPOLIA || 'https://base-sepolia.drpc.org',
-            accounts,
-            oftAdapter: {
-                tokenAddress: '0x40BD670A58238e6E230c430BBb5cE6ec0d40df48', // Set the token address for the OFT adapter
-            }
-        },
-        'ethereum-mainnet': {
+        ethereum: {
             eid: EndpointId.ETHEREUM_V2_MAINNET,
-            url: process.env.RPC_URL_ETH_MAINNET || 'https://eth-mainnet.public.blastapi.io',
+            url: process.env.RPC_URL_ETHEREUM || 'https://eth-mainnet.public.blastapi.io',
             accounts,
-            oftAdapter: {
-                tokenAddress: '0x58D97B57BB95320F9a05dC918Aef65434969c2B2', // Set the token address for the OFT adapter
-            },
         },
-        'arbitrum-mainnet': {
+        arbitrum: {
             eid: EndpointId.ARBITRUM_V2_MAINNET,
-            url: process.env.RPC_URL_ARB_MAINNET || 'https://arbitrum.public.blockpi.network/v1/rpc/public',
+            url: process.env.RPC_URL_ARBITRUM || 'https://arbitrum.public.blockpi.network/v1/rpc/public',
             accounts,
-            oftAdapter: {
-                tokenAddress: '0x40bd670a58238e6e230c430bbb5ce6ec0d40df48', // Set the token address for the OFT adapter
-            },
+        },
+        hyperevm: {
+            eid: EndpointId.HYPERLIQUID_V2_MAINNET,
+            url: process.env.RPC_URL_HYPEREVM || 'https://rpc.hyperion.dev',
+            accounts,
         },
         hardhat: {
             // Need this for testing because TestHelperOz5.sol is exceeding the compiled contract size limit
@@ -115,7 +84,7 @@ const config: HardhatUserConfig = {
         deployer: {
             default: 0, // wallet address of index[0], of the mnemonic in .env
         },
-    }
+    },
 }
 
 export default config

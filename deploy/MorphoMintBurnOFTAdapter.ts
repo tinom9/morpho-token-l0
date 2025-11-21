@@ -1,71 +1,52 @@
-import { EndpointId } from '@layerzerolabs/lz-definitions'
-import assert from 'assert'
-import { parseEther } from 'ethers/lib/utils'
-
 import { type DeployFunction } from 'hardhat-deploy/types'
+
+import { useBigBlock, useSmallBlock } from '@layerzerolabs/hyperliquid-composer'
+import { EndpointId } from '@layerzerolabs/lz-definitions'
+
+import { getRateLimits } from '../consts/mainnet'
+import { LZ_GRANT_ERC20_ROLES_TASK } from '../tasks/names'
+import { validateHre } from '../utils/hre'
+import { loadHreWallet } from '../utils/wallet'
 
 const contractName = 'MorphoMintBurnOFTAdapter'
 
 const deploy: DeployFunction = async (hre) => {
-    const { getNamedAccounts, deployments } = hre
+    const { eid, deployer, deployments, deploy } = await validateHre(hre)
 
-    const { deploy } = deployments
-    const { deployer } = await getNamedAccounts()
+    console.log(`Deploying ${contractName}, network: ${hre.network.name} with ${deployer}`)
 
-    assert(deployer, 'Missing named deployer account')
+    const isHyperEvm = eid === EndpointId.HYPERLIQUID_V2_MAINNET
+    const isArbitrum = eid === EndpointId.ARBITRUM_V2_MAINNET
+    const isTestnet = false
 
-    console.log(`Network: ${hre.network.name}`)
-    console.log(`Deployer: ${deployer}`)
+    const wallet = isHyperEvm ? loadHreWallet(hre) : undefined
+    const logLevel = hre.hardhatArguments.verbose ? 'debug' : 'error'
 
-    // This is an external deployment pulled in from @layerzerolabs/lz-evm-sdk-v2
-    //
-    // @layerzerolabs/toolbox-hardhat takes care of plugging in the external deployments
-    // from @layerzerolabs packages based on the configuration in your hardhat config
-    //
-    // For this to work correctly, your network config must define an eid property
-    // set to `EndpointId` as defined in @layerzerolabs/lz-definitions
-    //
-    // For example:
-    //
-    // networks: {
-    //   fuji: {
-    //     ...
-    //     eid: EndpointId.AVALANCHE_V2_TESTNET
-    //   }
-    // }
-    const endpointV2Deployment = await hre.deployments.get('EndpointV2')
-    const minterBurnerAddress = '0x40BD670A58238e6E230c430BBb5cE6ec0d40df48' // MorphoTokenArbitrum Proxy
+    const endpointV2Deployment = await deployments.get('EndpointV2')
+    const tokenDeployment = await deployments.get(isArbitrum ? 'MorphoTokenArbitrum' : 'MorphoToken')
 
-    // The token address must be defined in hardhat.config.ts
-    // If the token address is not defined, the deployment will log a warning and skip the deployment
-    if (hre.network.config.oftAdapter == null) {
-        console.warn(`oftAdapter not configured on network config, skipping OFTWrapper deployment`)
-
-        return
-    }
-
-    const rateLimitConfigs = [
-        {
-            dstEid: EndpointId.ETHEREUM_V2_MAINNET,
-            limit: parseEther('100000'),
-            window: 2628000
-        },
-    ]
+    const existingDeployment = await deployments.getOrNull(contractName)
+    if (isHyperEvm && !existingDeployment) await useBigBlock(wallet!, isTestnet, logLevel, true)
 
     const { address } = await deploy(contractName, {
         from: deployer,
         args: [
-            hre.network.config.oftAdapter.tokenAddress, // token address
-            minterBurnerAddress, // token address implementing IMintableBurnable
+            tokenDeployment.address, // token address
+            tokenDeployment.address, // token address implementing IMintableBurnable
             endpointV2Deployment.address, // LayerZero's EndpointV2 address
             deployer, // owner
-            rateLimitConfigs,
+            getRateLimits(eid),
         ],
         log: true,
-        skipIfAlreadyDeployed: false,
+        skipIfAlreadyDeployed: true,
     })
 
+    if (isHyperEvm && !existingDeployment) await useSmallBlock(wallet!, isTestnet, logLevel, true)
+
     console.log(`Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`)
+
+    console.log(`Granting ERC20 roles for ${contractName} on ${hre.network.name}...`)
+    await hre.run(LZ_GRANT_ERC20_ROLES_TASK)
 }
 
 deploy.tags = [contractName]

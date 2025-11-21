@@ -1,66 +1,33 @@
-import { EndpointId } from '@layerzerolabs/lz-definitions'
 import assert from 'assert'
-import { parseEther } from 'ethers/lib/utils'
 
 import { type DeployFunction } from 'hardhat-deploy/types'
+
+import { EndpointId } from '@layerzerolabs/lz-definitions'
+
+import { ETHEREUM_MORPHO_TOKEN_ADDRESS, getRateLimits } from '../consts/mainnet'
+import { validateHre } from '../utils/hre'
 
 const contractName = 'MorphoOFTAdapter'
 
 const deploy: DeployFunction = async (hre) => {
-    const { getNamedAccounts, deployments } = hre
+    const { eid, deployer, deployments, deploy } = await validateHre(hre)
 
-    const { deploy } = deployments
-    const { deployer } = await getNamedAccounts()
+    assert(eid === EndpointId.ETHEREUM_V2_MAINNET, 'Only supported on Ethereum mainnet')
 
-    assert(deployer, 'Missing named deployer account')
+    console.log(`Deploying ${contractName}, network: ${hre.network.name} with ${deployer}`)
 
-    console.log(`Network: ${hre.network.name}`)
-    console.log(`Deployer: ${deployer}`)
-
-    // This is an external deployment pulled in from @layerzerolabs/lz-evm-sdk-v2
-    //
-    // @layerzerolabs/toolbox-hardhat takes care of plugging in the external deployments
-    // from @layerzerolabs packages based on the configuration in your hardhat config
-    //
-    // For this to work correctly, your network config must define an eid property
-    // set to `EndpointId` as defined in @layerzerolabs/lz-definitions
-    //
-    // For example:
-    //
-    // networks: {
-    //   fuji: {
-    //     ...
-    //     eid: EndpointId.AVALANCHE_V2_TESTNET
-    //   }
-    // }
-    const endpointV2Deployment = await hre.deployments.get('EndpointV2')
-
-    // The token address must be defined in hardhat.config.ts
-    // If the token address is not defined, the deployment will log a warning and skip the deployment
-    if (hre.network.config.oftAdapter == null) {
-        console.warn(`oftAdapter not configured on network config, skipping OFTWrapper deployment`)
-
-        return
-    }
-
-    const rateLimitConfigs = [
-        {
-            dstEid: EndpointId.ARBITRUM_V2_MAINNET,
-            limit: parseEther('250000'),
-            window: 2628000
-        },
-    ]
+    const endpointV2Deployment = await deployments.get('EndpointV2')
 
     const { address } = await deploy(contractName, {
         from: deployer,
         args: [
-            hre.network.config.oftAdapter.tokenAddress, // token address
+            ETHEREUM_MORPHO_TOKEN_ADDRESS, // token address
             endpointV2Deployment.address, // LayerZero's EndpointV2 address
             deployer, // owner
-            rateLimitConfigs, // rate limit configs
+            getRateLimits(eid),
         ],
         log: true,
-        skipIfAlreadyDeployed: false,
+        skipIfAlreadyDeployed: true,
     })
 
     console.log(`Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`)
